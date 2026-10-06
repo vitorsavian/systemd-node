@@ -30,42 +30,43 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Load Secrets from Vault
-        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
+      # - name: Load Secrets from Vault
+      #   uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+      #   with:
+      #     secrets: |
+      #       secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+      #       secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+      # - name: Build and push image [Docker Hub]
+      #   uses: rancher/ecm-distro-tools/actions/publish-image@086cd2f90ed82712e45701441a00e59b95b578c1 # v0.77.1
+      #   with:
+      #     image: systemd-node
+      #     tag: ${{ github.ref_name }}
+      #     platforms: linux/amd64,linux/arm64
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      #     public-registry: docker.io
+      #     public-repo: rancher
+      #     public-username: ${{ env.DOCKER_USERNAME }}
+      #     public-password: ${{ env.DOCKER_PASSWORD }}
+      #     make-target: push-image
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Login to Docker Container Registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+      #     push-to-prime: false
 
-      - name: Build container image for Linux
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      - name: Build and push image [GHCR]
+        uses: rancher/ecm-distro-tools/actions/publish-image@086cd2f90ed82712e45701441a00e59b95b578c1 # v0.77.1
         with:
-          context: .
-          push: true
-          tags: |
-            rancher/system-node:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/systemd-node:${{ github.ref_name }}
-          file: Dockerfile
-          platforms: linux/amd64, linux/arm64
+          image: systemd-node
+          tag: ${{ github.ref_name }}
+          platforms: linux/amd64,linux/arm64
+          skip-buildx-setup: true
+
+          public-registry: ghcr.io
+          public-repo: ${{ github.repository_owner }}
+          public-username: ${{ github.repository_owner }}
+          public-password: ${{ secrets.GITHUB_TOKEN }}
+          make-target: push-image
+
+          push-to-prime: false
 
   finalize:
     name: Publish GitHub release
