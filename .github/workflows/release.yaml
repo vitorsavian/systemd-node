@@ -59,8 +59,7 @@ jobs:
           context: .
           push: true
           tags: |
-            rancher/system-node:${{ github.event.release.tag_name }}
-            ghcr.io/rancher/system-node:${{ github.event.release.tag_name }}
+            ghcr.io/vitorsavian/system-node:${{ github.event.release.tag_name }}
           file: Dockerfile
           platforms: linux/amd64, linux/arm64
 
