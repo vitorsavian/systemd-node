@@ -25,6 +25,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -36,20 +37,35 @@ jobs:
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
 
-      - name: Build and push image
-        uses: rancher/ecm-distro-tools/actions/publish-image@9184db604470b8956e9b8e3ca4db7262676a2364 # master 2026-04-09
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
-          image: systemd-node
-          tag: ${{ github.ref_name }}
-          platforms: linux/amd64,linux/arm64
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Login to Docker Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
 
-          public-registry: docker.io
-          public-repo: rancher
-          public-username: ${{ env.DOCKER_USERNAME }}
-          public-password: ${{ env.DOCKER_PASSWORD }}
-          make-target: push-image
-
-          push-to-prime: false
+      - name: Build container image for Linux
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: true
+          tags: |
+            rancher/system-node:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/systemd-node:${{ github.ref_name }}
+          file: Dockerfile
+          platforms: linux/amd64, linux/arm64
 
   finalize:
     name: Publish GitHub release
@@ -67,4 +83,4 @@ jobs:
           if [[ "${GITHUB_REF_NAME}" == *"-rc"* ]]; then
             FLAGS="${FLAGS} --prerelease"
           fi
-          gh release edit -R "${GITHUB_REPOSITORY}" "${GITHUB_REF_NAME}" $flags
+          gh release edit -R "${GITHUB_REPOSITORY}" "${GITHUB_REF_NAME}" ${FLAGS}
