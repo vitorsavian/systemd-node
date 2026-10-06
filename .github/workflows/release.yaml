@@ -58,7 +58,6 @@ jobs:
           image: systemd-node
           tag: ${{ github.ref_name }}
           platforms: linux/amd64,linux/arm64
-          skip-buildx-setup: true
 
           public-registry: ghcr.io
           public-repo: ${{ github.repository_owner }}
